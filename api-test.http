@@ -1,0 +1,90 @@
+@baseUrl = http://localhost:3000
+
+### 1. Inscription d'un Agent Standard
+# @name registerAgent
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "agent_007",
+  "password": "SecretPassword7"
+}
+
+### 2. Inscription du CHEF (Via clé d'amorçage)
+# @name registerChef
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+X-Spy-Admin-Secret: QG_SECRET_KEY_2026
+
+{
+  "username": "chef_m",
+  "password": "M_MasterPassword2026"
+}
+
+### 3. Connexion de l'Agent
+# @name loginAgent
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "agent_007",
+  "password": "SecretPassword7"
+}
+
+### Stockage du token de l'agent
+@tokenAgent = {loginAgent.response.body.token}
+
+### 4. Connexion du CHEF
+# @name loginChef
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "chef_m",
+  "password": "M_MasterPassword2026"
+}
+
+### Stockage du token du Chef
+@tokenChef = {loginChef.response.body.token}
+
+### 5. Consultation du profil connecté (Preuve de l'identité Axios)
+GET {{baseUrl}}/api/auth/me
+Authorization: Bearer {{tokenAgent}}
+
+### 6. Test d'Accès sans Token (Attendu : 401 Unauthorized)
+GET {{baseUrl}}/api/missions
+
+### 7. Test Action Interdite : L'Agent standard tente de créer (Attendu : 403 Forbidden)
+POST {{baseUrl}}/api/missions
+Authorization: Bearer {{tokenAgent}}
+Content-Type: application/json
+
+{
+  "titre": "Voler les plans",
+  "description": "Infiltration nocturne.",
+  "confidentialite": "TRES_SECRET",
+  "recompense": 8000
+}
+
+### 8. Le CHEF crée une mission avec succès (Attendu : 201 Created)
+# @name createMission
+POST {{baseUrl}}/api/missions
+Authorization: Bearer {{tokenChef}}
+Content-Type: application/json
+
+{
+  "titre": "Opération Goldfinger",
+  "description": "Sécuriser la réserve d'or fédérale.",
+  "confidentialite": "SECRET",
+  "recompense": 25000
+}
+
+@missionId = {createMission.response.body.id}
+
+### 9. Lecture avec Filtrage & Pagination (Attendu : 200 OK)
+GET {{baseUrl}}/api/missions?statut=DISPONIBLE&page=1&limit=2
+Authorization: Bearer {{tokenAgent}}
+
+### 10. Test Ressource Inexistante (Attendu : 404 Not Found)
+DELETE {{baseUrl}}/api/missions/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{tokenChef}}

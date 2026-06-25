@@ -1,0 +1,55 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  AGENT
+  CHEF
+}
+
+enum Habilitation {
+  CONFIDENTIEL
+  SECRET
+  TRES_SECRET
+}
+
+enum StatutMission {
+  DISPONIBLE
+  EN_COURS
+  REUSSIE
+  ECHOUEE
+}
+
+model Agent {
+  id            String       @id @default(uuid())
+  username      String       @unique
+  password      String
+  role          Role         @default(AGENT)
+  habilitation  Habilitation @default(CONFIDENTIEL)
+  
+  // Identité de couverture (Axios)
+  nomCouverture String
+  nationalite   String
+  photo         String
+  
+  missions      Mission[]
+  createdAt     DateTime     @default(now())
+}
+
+model Mission {
+  id              String        @id @default(uuid())
+  titre           String
+  description     String
+  confidentialite Habilitation  @default(CONFIDENTIEL)
+  statut          StatutMission @default(DISPONIBLE)
+  recompense      Int           @default(0)
+  
+  agentId         String?
+  agent           Agent?        @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  createdAt       DateTime      @default(now())
+}
